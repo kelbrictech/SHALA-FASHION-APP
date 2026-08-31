@@ -44,20 +44,40 @@ export async function initStorage() {
 
 async function touchMeta(extra = {}) {
   const current = await ensureMeta();
+  // Preserve SCHEMA_MISMATCH unless explicitly cleared via a sanctioned operation.
+  const nextRecoveryStatus = (current && current.recoveryStatus === 'SCHEMA_MISMATCH' && extra.recoveryStatus !== 'CLEAR_SCHEMA_MISMATCH')
+    ? 'SCHEMA_MISMATCH'
+    : (extra.recoveryStatus || 'READY');
+
   const next = {
     ...current,
     ...extra,
     schemaVersion: SCHEMA_VERSION,
-    lastKnownValidState: Date.now()
+    lastKnownValidState: Date.now(),
+    recoveryStatus: nextRecoveryStatus
   };
   await idb.idbSet(KEYS.META, next);
   return next;
 }
 
+// Write-gate: ensure no SCHEMA_MISMATCH before performing authoritative writes.
+async function assertNoSchemaMismatchForWrites() {
+  const meta = await ensureMeta();
+  if (meta && meta.recoveryStatus === 'SCHEMA_MISMATCH') {
+    throw new Error('schema_mismatch_recovery_required');
+  }
+}
+
 // Profile. Birthday Gift Opened Flag authority is META; profile receives a read mirror only.
 export async function saveProfile(profile) {
+  // gate writes if schema mismatch present
+  await assertNoSchemaMismatchForWrites();
+
   if (!validateProfile(profile)) throw new Error('invalid_profile');
   const currentMeta = await ensureMeta();
+  // double-check after ensureMeta; if mismatch latched by external actor, fail closed
+  if (currentMeta && currentMeta.recoveryStatus === 'SCHEMA_MISMATCH') throw new Error('schema_mismatch_recovery_required');
+
   const birthdayGiftOpened = 'birthdayGiftOpened' in profile
     ? Boolean(profile.birthdayGiftOpened)
     : Boolean(currentMeta.birthdayGiftOpened);
@@ -98,6 +118,7 @@ export async function getFavorites() {
 }
 
 export async function addFavorite(fav) {
+  await assertNoSchemaMismatchForWrites();
   const list = await getFavorites();
   if (list.length >= 3) throw new Error('favorites_limit_exceeded');
   list.push(fav);
@@ -106,6 +127,7 @@ export async function addFavorite(fav) {
 }
 
 export async function removeFavorite(favIndex) {
+  await assertNoSchemaMismatchForWrites();
   const list = await getFavorites();
   if (favIndex < 0 || favIndex >= list.length) throw new Error('invalid_favorite_index');
   list.splice(favIndex, 1);
@@ -115,7 +137,10 @@ export async function removeFavorite(favIndex) {
 
 // Active build. Storage protects the three distinct transformation authorities.
 export async function saveActiveBuild(build) {
+  await assertNoSchemaMismatchForWrites();
   if (!validateActiveBuild(build)) throw new Error('invalid_active_build');
+  const currentMeta = await ensureMeta();
+  if (currentMeta && currentMeta.recoveryStatus === 'SCHEMA_MISMATCH') throw new Error('schema_mismatch_recovery_required');
   await idb.idbSet(KEYS.ACTIVE_BUILD, build);
 }
 
