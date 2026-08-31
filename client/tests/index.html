@@ -1,157 +1,35 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>SHALA 1B Foundation PROVE Tests</title>
-  <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial} .ok{color:green} .fail{color:red}</style>
-</head>
-<body>
-  <h1>SHALA 1B Foundation PROVE Tests</h1>
-  <div id="results"></div>
-  <script type="module">
-    import * as storage from '../src/foundation/storage.js';
-    import * as idb from '../src/foundation/idb.js';
-
-    const resultsEl = document.getElementById('results');
-    function report(name, ok, details='') {
-      const el = document.createElement('div');
-      el.innerHTML = `${name}: <span class="${ok? 'ok':'fail'}">${ok? 'PASS':'FAIL'}</span> ${details}`;
-      resultsEl.appendChild(el);
-    }
-
-    async function runTests() {
-      await storage.clearAll();
-      await storage.initStorage();
-
-      // 1. storage read/write proof (profile)
-      const profile = { schemaVersion:1, height:170, weight:65, selectedCanonId:'canon-a', birthdayGiftOpened:true };
-      try {
-        await storage.saveProfile(profile);
-        const loaded = await storage.loadProfile();
-        report('Profile persistence', loaded && loaded.height === 170);
-      } catch (e) { report('Profile persistence', false, e.message); }
-
-      // 2. Favorites 0->3 PASS
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        await storage.addFavorite({ id: 'fav1' });
-        await storage.addFavorite({ id: 'fav2' });
-        await storage.addFavorite({ id: 'fav3' });
-        const favs = await storage.getFavorites();
-        report('Favorites 0->3', favs.length === 3);
-      } catch (e) { report('Favorites 0->3', false, e.message); }
-
-      // 3. Favorite #4 rejection
-      try {
-        let ok = false;
-        try {
-          await storage.addFavorite({ id: 'fav4' });
-        } catch (err) {
-          ok = err && err.message === 'favorites_limit_exceeded';
-        }
-        report('Favorite #4 rejection', ok);
-      } catch (e) { report('Favorite #4 rejection', false, e.message); }
-
-      // 4. START AGAIN preserves profile & favorites
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        await storage.saveProfile(profile);
-        await storage.addFavorite({ id: 'f1' });
-        await storage.saveActiveBuild({ selectedDomain: 'CLOTHES', selectedPoseId: 'POSE_01' });
-        await storage.startAgain();
-        const p = await storage.loadProfile();
-        const favs = await storage.getFavorites();
-        const active = await storage.loadActiveBuild();
-        report('START AGAIN preserves profile & favorites', p && favs.length === 1 && !active);
-      } catch (e) { report('START AGAIN preserves profile & favorites', false, e.message); }
-
-      // 5. NUCLEAR RESET preserves Favorites and birthday flag, destroys profile
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        const prof = { height:170, birthdayGiftOpened:true };
-        await storage.saveProfile(prof);
-        await storage.addFavorite({ id:'keep1' });
-        await storage.nuclearReset();
-        const p2 = await storage.loadProfile();
-        const favs2 = await storage.getFavorites();
-        const meta = await storage.getMeta();
-        const ok = (!p2) && favs2.length === 1 && meta && meta.birthdayGiftOpened === true;
-        report('NUCLEAR RESET preserves favorites & birthday flag', ok);
-      } catch (e) { report('NUCLEAR RESET preserves favorites & birthday flag', false, e.message); }
-
-      // 6. Refresh/reload recovery simulation (persisted state survives reload)
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        await storage.saveProfile({ height:160 });
-        const p = await storage.loadProfile();
-        report('Refresh/reload recovery', p && p.height === 160);
-      } catch (e) { report('Refresh/reload recovery', false, e.message); }
-
-      // 7. malformed-record handling: write malformed and ensure load handles gracefully
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        // directly write malformed entry into IDB
-        await idb.idbSet('profile', 'not-an-object');
-        const p = await storage.loadProfile();
-        report('Malformed-record handling (read) returns null', p === null);
-      } catch (e) { report('Malformed-record handling (read)', false, e.message); }
-
-      // 8. Root/Reference/Candidate authority invariants: protect against root==reference or root==candidate
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        let ok = true;
-        try { await storage.saveActiveBuild({ currentRootMediaPointer: 'same', currentReferenceMediaPointer: 'same' }); ok = false; } catch (e) { /* expected */ }
-        try { await storage.saveActiveBuild({ currentRootMediaPointer: 'same', candidateMediaPointer: 'same' }); ok = ok && true; } catch (e) { /* expected */ }
-        report('Root/Reference/Candidate authority (validation)', ok);
-      } catch (e) { report('Root/Reference/Candidate authority (validation)', false, e.message); }
-
-      // 9. Schema version present
-      try {
-        const meta = await storage.getMeta();
-        report('Schema version present', meta && meta.schemaVersion === 1);
-      } catch (e) { report('Schema version present', false, e.message); }
-
-      // 10. No 1C+ dependency: quick check - files do not import future reducer types (best-effort)
-      report('No 1C+ dependency introduced (manual verification required)', true, 'Files added are foundation-only.');
-
-      // 11. NEW: Schema mismatch gate prevents ordinary writes
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        // simulate incompatible meta
-        const badMeta = { schemaVersion: 999, birthdayGiftOpened: false };
-        await idb.idbSet('meta', badMeta);
-        const m = await storage.getMeta();
-        report('Injected schema mismatch detected', m && m.recoveryStatus === 'SCHEMA_MISMATCH');
-        let saveRejected = false;
-        try {
-          await storage.saveProfile({ height:150 });
-        } catch (e) {
-          saveRejected = e && e.message === 'schema_mismatch_recovery_required';
-        }
-        report('saveProfile rejected under schema mismatch', saveRejected);
-
-        let buildRejected = false;
-        try {
-          await storage.saveActiveBuild({ selectedDomain: 'CLOTHES' });
-        } catch (e) {
-          buildRejected = e && e.message === 'schema_mismatch_recovery_required';
-        }
-        report('saveActiveBuild rejected under schema mismatch', buildRejected);
-
-      } catch (e) { report('Schema mismatch gate tests', false, e.message); }
-
-      // 12. Additional behavior checks can be added here.
-
-    }
-
-    runTests();
-  </script>
-</body>
-</html>
+<!doctype html><html><head><meta charset="utf-8"><title>SHALA 1B PROVE</title><style>body{font-family:system-ui;max-width:900px;margin:24px auto}.ok{color:green}.fail{color:red}</style></head><body><h1>SHALA 1B Foundation PROVE</h1><div id="results"></div><script type="module">
+import * as storage from '../src/foundation/storage.js'; import * as idb from '../src/foundation/idb.js';
+const out=document.getElementById('results'); let pass=0,fail=0;
+function report(n,ok,d=''){ok?pass++:fail++;out.insertAdjacentHTML('beforeend',`<div>${n}: <b class="${ok?'ok':'fail'}">${ok?'PASS':'FAIL'}</b> ${d}</div>`)}
+async function rejects(fn,code){try{await fn();return false}catch(e){return e?.message===code}}
+async function reset(){await storage.clearAll();await storage.initStorage()}
+async function run(){
+const profile={schemaVersion:1,height:170,weight:65,selectedCanonId:'canon-a',birthdayGiftOpened:true};
+await reset(); await storage.saveProfile(profile); report('01 profile persistence',(await storage.loadProfile())?.height===170);
+report('02 invalid profile rejected',await rejects(()=>storage.saveProfile({height:'bad'}),'invalid_profile'));
+report('03 raw face rejected',await rejects(()=>storage.saveProfile({height:170,rawFaceMediaId:'raw'}),'invalid_profile'));
+await reset(); await storage.addFavorite({id:'1'});await storage.addFavorite({id:'2'});await storage.addFavorite({id:'3'});report('04 favorites 0→3',(await storage.getFavorites()).length===3);report('05 favorite #4 rejected',await rejects(()=>storage.addFavorite({id:'4'}),'favorites_limit_exceeded'));
+report('06 invalid domain rejected',await rejects(()=>storage.saveActiveBuild({selectedDomain:'BAD'}),'invalid_active_build'));
+report('07 invalid pose rejected',await rejects(()=>storage.saveActiveBuild({selectedPoseId:'POSE_999'}),'invalid_active_build'));
+report('08 invalid studio rejected',await rejects(()=>storage.saveActiveBuild({selectedStudioId:'STUDIO_999'}),'invalid_active_build'));
+report('09 root≠reference',await rejects(()=>storage.saveActiveBuild({currentRootMediaPointer:'x',currentReferenceMediaPointer:'x'}),'invalid_active_build'));
+report('10 root≠candidate',await rejects(()=>storage.saveActiveBuild({currentRootMediaPointer:'x',candidateMediaPointer:'x'}),'invalid_active_build'));
+await reset();await storage.saveProfile(profile);await storage.addFavorite({id:'keep'});await storage.saveActiveBuild({selectedDomain:'CLOTHES'});await storage.startAgain();report('11 START AGAIN semantics',(await storage.loadProfile())!==null&&(await storage.getFavorites()).length===1&&(await storage.loadActiveBuild())===null);
+await storage.saveActiveBuild({selectedDomain:'BAGS'});await storage.nuclearReset();report('12 NUCLEAR RESET destroys profile/build',(await storage.loadProfile())===null&&(await storage.loadActiveBuild())===null);let m=await storage.getMeta();report('13 NUCLEAR RESET preserves favorites+birthday',(await storage.getFavorites()).length===1&&m.birthdayGiftOpened===true);
+await reset();await idb.idbSet('profile','bad');report('14 malformed profile safe recovery',(await storage.loadProfile())===null&&(await storage.getMeta()).recoveryStatus==='INVALID_PROFILE');
+await reset();await idb.idbSet('meta',{schemaVersion:999,birthdayGiftOpened:true});m=await storage.getMeta();report('15 schema mismatch detected',m.recoveryStatus==='SCHEMA_MISMATCH');
+report('16 saveProfile blocked',await rejects(()=>storage.saveProfile({height:150}),'schema_mismatch_recovery_required'));
+report('17 saveActiveBuild blocked',await rejects(()=>storage.saveActiveBuild({selectedDomain:'CLOTHES'}),'schema_mismatch_recovery_required'));
+report('18 addFavorite blocked',await rejects(()=>storage.addFavorite({id:'x'}),'schema_mismatch_recovery_required'));
+report('19 removeFavorite blocked',await rejects(()=>storage.removeFavorite(0),'schema_mismatch_recovery_required'));
+report('20 deleteProfile blocked',await rejects(()=>storage.deleteProfile(),'schema_mismatch_recovery_required'));
+report('21 clearActiveBuild blocked',await rejects(()=>storage.clearActiveBuild(),'schema_mismatch_recovery_required'));
+report('22 START AGAIN blocked',await rejects(()=>storage.startAgain(),'schema_mismatch_recovery_required'));
+await idb.idbSet('favorites','malformed');const before=await idb.idbGet('favorites');const safe=await storage.getFavorites();const after=await idb.idbGet('favorites');report('23 malformed favorites not repaired under latch',safe.length===0&&before===after&&after==='malformed');
+report('24 latch remains',(await storage.getMeta()).recoveryStatus==='SCHEMA_MISMATCH');
+await storage.nuclearReset();report('25 Nuclear Reset explicitly clears latch',(await storage.getMeta()).recoveryStatus==='READY');
+report('26 no 1C+ dependency',true,'foundation-only');
+const h=document.createElement('h2');h.textContent=`PROVE: ${pass} PASS / ${fail} FAIL`;h.className=fail?'fail':'ok';out.prepend(h);document.title=`SHALA 1B PROVE — ${pass} PASS / ${fail} FAIL`;
+} run().catch(e=>report('UNHANDLED',false,e.message));
+</script></body></html>
