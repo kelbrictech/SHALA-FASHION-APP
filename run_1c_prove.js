@@ -38,5 +38,5 @@ const puppeteer = require('puppeteer');
 
   await browser.close(); await new Promise(resolve => server.close(resolve));
   console.log(heading);
-  if (summary.failed || summary.total !== 27) process.exit(1);
+  if (summary.failed || summary.total !== 30) process.exit(1);
 })().catch(err => { console.error(err); process.exit(1); });
