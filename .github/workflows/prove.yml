@@ -1,0 +1,30 @@
+name: SHALA 1B PROVE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'run_prove.js'
+      - 'client/src/foundation/**'
+      - 'client/tests/index.html'
+      - '.github/workflows/prove.yml'
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Puppeteer
+        run: npm install --no-save puppeteer
+      - name: Run 1B PROVE
+        run: node run_prove.js
+      - name: Upload PROVE artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shala-1b-prove-artifacts
+          path: prove-artifacts
+          if-no-files-found: warn
