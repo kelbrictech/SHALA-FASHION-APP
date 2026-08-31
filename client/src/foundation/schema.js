@@ -10,5 +10,5 @@ export const POSES = [
 ];
 
 export const STUDIOS = [
-  "STUDIO_01","STUDIO_02","STUDIO_03","STUDIO_04","STUDIO_05"
+  "STUDIO_01","STUDIO_02","STUDIO_03","STUDIO_04","STUDIO_05","MY_STUDIO"
 ];
