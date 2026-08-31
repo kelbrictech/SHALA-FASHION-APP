@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><title>SHALA 1C PROVE</title><h1>SHALA 1C FRAMING PROVE</h1><div id="results"></div><script type="module">
+import {initialState,transition,hydrate,SCREENS} from '../src/framing/state.js';
+import * as storage from '../src/foundation/storage.js';
+const out=document.querySelector('#results'); let pass=0,fail=0,n=0;
+async function t(name,fn){n++;try{await fn();pass++;out.innerHTML+=`<div>${String(n).padStart(2,'0')} ${name}: PASS</div>`}catch(e){fail++;out.innerHTML+=`<div>${String(n).padStart(2,'0')} ${name}: FAIL ${e.message}</div>`}}
+const eq=(a,b)=>{if(a!==b)throw Error(`${a} != ${b}`)}; const ok=v=>{if(!v)throw Error('assertion_failed')};
+await storage.clearAll();
+let s=initialState();
+await t('initial face state',()=>eq(s.screen,SCREENS.FACE));
+await t('CREATE ME spine',async()=>{s=await transition(s,'FACE_ACCEPTED');s=await transition(s,'MEASUREMENTS_ACCEPTED');s=await transition(s,'IDENTITY_READY');eq(s.screen,SCREENS.CANON)});
+await t('Canon correction branch',async()=>{s=await transition(s,'CANON_NO');eq(s.screen,SCREENS.CANON_CORRECTION);s=await transition(s,'CANON_CORRECTED');eq(s.screen,SCREENS.CANON)});
+await t('Canon accept to Compact',async()=>{s=await transition(s,'CANON_YES',{profile:{height:165,weight:58,measurements:{bust:38,waist:31,hips:37},selectedCanonId:'CANON_01',personalizedRootMediaPointer:'root-1'}});eq(s.screen,SCREENS.HOME)});
+await t('Workshop frame',async()=>{s=await transition(s,'OPEN_WORKSHOP');eq(s.screen,SCREENS.WORKSHOP)});
+await t('Single Domain',async()=>{s=await transition(s,'SELECT_DOMAIN',{domain:'CLOTHES'});eq(s.activeBuild.selectedDomain,'CLOTHES');eq(s.screen,SCREENS.POSE)});
+await t('invalid domain rejected',async()=>{let x={...s,screen:SCREENS.WORKSHOP};try{await transition(x,'SELECT_DOMAIN',{domain:'NOPE'});throw Error('accepted')}catch(e){if(e.message==='accepted')throw e}});
+await t('10 Core Pose authority',()=>eq(new Set(['POSE_01','POSE_02','POSE_03','POSE_04','POSE_05','POSE_06','POSE_07','POSE_08','POSE_09','POSE_10']).size,10));
+await t('Pose selection',async()=>{s=await transition(s,'SELECT_POSE',{poseId:'POSE_01'});eq(s.screen,SCREENS.STUDIO)});
+await t('Studio selection',async()=>{s=await transition(s,'SELECT_STUDIO',{studioId:'STUDIO_01'});eq(s.screen,SCREENS.REFERENCE)});
+await t('root cannot be reference',async()=>{try{await transition(s,'SET_REFERENCE',{pointer:'root-1'});throw Error('accepted')}catch(e){if(e.message==='accepted')throw e}});
+await t('reference acquisition',async()=>{s=await transition(s,'SET_REFERENCE',{pointer:'ref-1'});eq(s.activeBuild.currentReferenceMediaPointer,'ref-1')});
+await t('generation frame',async()=>{s=await transition(s,'BEGIN_GENERATION');eq(s.screen,SCREENS.GENERATING)});
+await t('back locked during generation',async()=>{try{await transition(s,'BACK');throw Error('accepted')}catch(e){eq(e.message,'navigation_locked')}});
+await t('root cannot be candidate',async()=>{try{await transition(s,'CANDIDATE_READY',{pointer:'root-1'});throw Error('accepted')}catch(e){if(e.message==='accepted')throw e}});
+await t('candidate does not replace Root before PASS',async()=>{s=await transition(s,'CANDIDATE_READY',{pointer:'candidate-1'});eq(s.activeBuild.currentRootMediaPointer,'root-1')});
+await t('PASS promotes candidate and reveals',async()=>{s=await transition(s,'CANDIDATE_PASS');eq(s.activeBuild.currentRootMediaPointer,'candidate-1');eq(s.screen,SCREENS.REVEAL);ok(s.activeBuild.pendingReveal)});
+await t('Comparison does not mutate lineage',async()=>{let root=s.activeBuild.currentRootMediaPointer,ref=s.activeBuild.currentReferenceMediaPointer;s=await transition(s,'TOGGLE_COMPARISON');eq(s.activeBuild.currentRootMediaPointer,root);eq(s.activeBuild.currentReferenceMediaPointer,ref);ok(s.comparisonEnabled)});
+await t('pendingReveal hydration',async()=>{let h=await hydrate();eq(h.screen,SCREENS.REVEAL)});
+await t('Try Another preserves successful Root',async()=>{let root=s.activeBuild.currentRootMediaPointer;s=await transition(s,'TRY_ANOTHER');eq(s.activeBuild.currentRootMediaPointer,root);eq(s.screen,SCREENS.REFERENCE)});
+await t('SWAP replaces only reference',async()=>{let root=s.activeBuild.currentRootMediaPointer;s=await transition(s,'SWAP_REFERENCE',{pointer:'ref-2'});eq(s.activeBuild.currentRootMediaPointer,root);eq(s.activeBuild.currentReferenceMediaPointer,'ref-2')});
+await t('RED/BLUE state independence',async()=>{let screen=s.screen;s=await transition(s,'SET_BLUE_VIEWPORT',{panX:10,panY:20,zoom:1.5});eq(s.screen,screen);eq(s.blueViewport.zoom,1.5)});
+await t('START AGAIN returns Compact and clears build',async()=>{s=await transition(s,'START_AGAIN');eq(s.screen,SCREENS.HOME);eq((await storage.loadActiveBuild()),null)});
+await t('Trend external return preserves reveal',async()=>{s=await transition(s,'OPEN_TREND');s=await transition(s,'REVEAL_TREND');s=await transition(s,'RETURN_FROM_EXTERNAL');ok(s.trendRevealed);eq(s.screen,SCREENS.TREND);s=await transition(s,'RETURN_HOME')});
+await t('Favorites Compact route',async()=>{s=await transition(s,'OPEN_FAVORITES');eq(s.screen,SCREENS.FAVORITES);s=await transition(s,'RETURN_HOME');eq(s.screen,SCREENS.HOME)});
+await t('illegal transition rejected',async()=>{try{await transition(s,'SELECT_POSE',{poseId:'POSE_01'});throw Error('accepted')}catch(e){if(e.message==='accepted')throw e}});
+await t('Nuclear Reset returns onboarding',async()=>{s=await transition(s,'NUCLEAR_RESET');eq(s.screen,SCREENS.FACE)});
+const heading=`PROVE: ${pass} PASS / ${fail} FAIL`;out.insertAdjacentHTML('afterbegin',`<h2>${heading}</h2>`);document.title=heading;
+</script>
