@@ -1,0 +1,31 @@
+name: SHALA 1C PROVE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'run_1c_prove.js'
+      - 'client/src/framing/**'
+      - 'client/src/foundation/**'
+      - 'client/tests/1c.html'
+      - '.github/workflows/prove-1c.yml'
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Puppeteer
+        run: npm install --no-save puppeteer
+      - name: Run 1C PROVE
+        run: node run_1c_prove.js
+      - name: Upload 1C PROVE artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shala-1c-prove-artifacts
+          path: prove-artifacts-1c
+          if-no-files-found: warn
