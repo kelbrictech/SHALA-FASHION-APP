@@ -19,12 +19,19 @@ jobs:
           node-version: 20
       - name: Install Puppeteer
         run: npm install --no-save puppeteer
+      - name: Run 1B regression PROVE
+        run: node run_prove.js
+      - name: Run 1C regression PROVE
+        run: node run_1c_prove.js
       - name: Run 1D PROVE
         run: node run_1d_prove.js
-      - name: Upload 1D PROVE artifacts
+      - name: Upload 1D and regression PROVE artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: shala-1d-prove-artifacts
-          path: prove-artifacts-1d
+          path: |
+            prove-artifacts
+            prove-artifacts-1c
+            prove-artifacts-1d
           if-no-files-found: warn
