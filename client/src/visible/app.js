@@ -1,105 +1,18 @@
-import { boot, dispatch, project } from '../roughins/controller.js';
-import * as storage from '../foundation/storage.js';
-import { POSES, STUDIOS } from '../foundation/schema.js';
-
-let state = null;
-let view = null;
-
-const statusEl = document.getElementById('status');
-const screenLabel = document.getElementById('screenLabel');
-const controlsEl = document.getElementById('controls');
-const blueViewport = document.getElementById('blueViewport');
-const studioControls = document.getElementById('studioControls');
-const favoritesList = document.getElementById('favoritesList');
-const referenceArea = document.getElementById('referenceArea');
-const compactArea = document.getElementById('compactArea');
-
-function setStatus(text){ statusEl.textContent = text; }
-
-function render() {
-  if (!view) return;
-  screenLabel.textContent = `Screen: ${view.screen}`;
-  // compact area
-  compactArea.innerHTML = '';
-  const exploreBtn = document.createElement('button'); exploreBtn.textContent = 'EXPLORE'; exploreBtn.onclick = async ()=>{ const r = await dispatch(state,'OPEN_WORKSHOP'); apply(r); };
-  const trendBtn = document.createElement('button'); trendBtn.textContent = 'TREND ALERT'; trendBtn.onclick = ()=>window.open('https://www.google.com/search?q=fashion','_blank');
-  compactArea.appendChild(exploreBtn); compactArea.appendChild(trendBtn);
-
-  // favorites
-  favoritesList.innerHTML = '';
-  if (view.profileSummary) {
-    const meta = storage.getMeta().then(m=>m).catch(()=>null);
-  }
-
-  // controls vary by screen: provide a small set of wiring buttons
-  controlsEl.innerHTML = '';
-  const addControl = (label, fn) => { const b = document.createElement('button'); b.textContent = label; b.onclick = async ()=>{ try{ const res = await fn(); apply(res); } catch(e){ alert('Action error: '+e.message); } }; controlsEl.appendChild(b); };
-
-  addControl('FACE_ACCEPTED', async ()=> dispatch(state,'FACE_ACCEPTED'));
-  addControl('MEASUREMENTS_ACCEPTED', async ()=> dispatch(state,'MEASUREMENTS_ACCEPTED'));
-  addControl('IDENTITY_READY', async ()=> dispatch(state,'IDENTITY_READY'));
-  addControl('CANON_YES', async ()=> dispatch(state,'CANON_YES',{ profile: { height:170, weight:65, measurements:{ bust:36, waist:28, hips:38 }, selectedCanonId:'CANON_01', personalizedRootMediaPointer:'root-1', birthdayGiftOpened:false }}));
-  addControl('OPEN_WORKSHOP', async ()=> dispatch(state,'OPEN_WORKSHOP'));
-  addControl('BEGIN_GENERATION', async ()=> dispatch(state,'BEGIN_GENERATION'));
-  addControl('CANDIDATE_READY', async ()=> dispatch(state,'CANDIDATE_READY',{ pointer:'candidate-ui-'+Date.now() }));
-  addControl('CANDIDATE_PASS', async ()=> dispatch(state,'CANDIDATE_PASS'));
-  addControl('CANDIDATE_FAIL', async ()=> dispatch(state,'CANDIDATE_FAIL'));
-  addControl('TOGGLE_COMPARISON', async ()=> dispatch(state,'TOGGLE_COMPARISON'));
-  addControl('TRY_ANOTHER', async ()=> dispatch(state,'TRY_ANOTHER'));
-  addControl('FAVORITE', async ()=> dispatch(state,'FAVORITE',{ favorite:{ id:'fav-'+Date.now() } }));
-  addControl('START_AGAIN', async ()=> dispatch(state,'START_AGAIN'));
-  addControl('NUCLEAR_RESET', async ()=> dispatch(state,'NUCLEAR_RESET'));
-
-  // studio controls
-  studioControls.innerHTML = '';
-  const studioSelect = document.createElement('select');
-  for (const s of STUDIOS) {
-    const o = document.createElement('option'); o.value = s; o.textContent = s === 'MY_STUDIO' ? 'My Studio' : s; studioSelect.appendChild(o);
-  }
-  const selectBtn = document.createElement('button'); selectBtn.textContent = 'SELECT_STUDIO'; selectBtn.onclick = async ()=>{
-    const res = await dispatch(state,'SELECT_STUDIO',{ studioId: studioSelect.value }); apply(res);
-  };
-  studioControls.appendChild(studioSelect); studioControls.appendChild(selectBtn);
-
-  // poses
-  const poseSelect = document.createElement('select');
-  for (const p of POSES){ const o = document.createElement('option'); o.value=p; o.textContent=p; poseSelect.appendChild(o); }
-  const selectPose = document.createElement('button'); selectPose.textContent='SELECT_POSE'; selectPose.onclick = async ()=>{ const res = await dispatch(state,'SELECT_POSE',{ poseId: poseSelect.value }); apply(res); };
-  studioControls.appendChild(document.createElement('br'));
-  studioControls.appendChild(poseSelect); studioControls.appendChild(selectPose);
-
-  // blue viewport content
-  blueViewport.textContent = `Root: ${view.activeBuild?.root || '-'} | Reference: ${view.activeBuild?.reference || '-'} | Candidate: ${view.activeBuild?.candidate || '-'}`;
-
-  // reference area and favorites list
-  referenceArea.innerHTML = '';
-  const setRefBtn = document.createElement('button'); setRefBtn.textContent = 'SET_REFERENCE (ref-ui)'; setRefBtn.onclick = async ()=>{ const res = await dispatch(state,'SET_REFERENCE',{ pointer:'ref-ui-'+Date.now() }); apply(res); };
-  const swapRefBtn = document.createElement('button'); swapRefBtn.textContent = 'SWAP_REFERENCE (ref-swap)'; swapRefBtn.onclick = async ()=>{ const res = await dispatch(state,'SWAP_REFERENCE',{ pointer:'ref-swap-'+Date.now() }); apply(res); };
-  referenceArea.appendChild(setRefBtn); referenceArea.appendChild(swapRefBtn);
-
-  // favorites list display
-  favoritesList.innerHTML = '';
-  const favs = await storage.getFavorites();
-  for (const f of favs){ const li = document.createElement('li'); li.textContent = JSON.stringify(f); favoritesList.appendChild(li); }
-}
-
-function apply(res){
-  if (res && res.state) {
-    state = res.state; view = res.view || project(state);
-  } else if (res && res.screen) {
-    // sometimes hydrate returns a plain state
-    state = res; view = project(state);
-  }
-  setStatus('Ready');
-  render();
-}
-
-(async function init(){
-  setStatus('Booting...');
-  try{
-    const booted = await boot();
-    state = booted.state; view = booted.view;
-    setStatus('Ready');
-    render();
-  }catch(e){ setStatus('Boot failed: '+e.message); }
-})();
+const S=document.querySelector('#screen'),L=document.querySelector('#screenLabel');let i=0;
+const bodyTiles=Array.from({length:7},(_,x)=>`<button class="tile">BODY ${x+1}</button>`).join('');
+const pages=[
+['CREATE ME — FACE',`<h1>Create Me</h1><div class="box image">FACE / CAMERA<br>identity source</div><button class="btn yes">USE THIS FACE</button>`],
+['CREATE ME — MEASUREMENTS',`<h1>Your measurements</h1><div class="field">HEIGHT <b>5′5″</b> ↔ cm</div><div class="field">WEIGHT <b>58 kg</b> ↔ lb</div><div class="field">BUST / WAIST / HIPS <b>38 / 31 / 37</b></div><button class="btn yes">THIS LOOKS RIGHT</button>`],
+['IDENTITY GENERATING',`<h1>Creating you…</h1><div class="box image">ALBUS is doing the math...</div>`],
+['CANON CONFIRMATION',`<h1>Does this resemble you?</h1><div class="box image">PERSONALIZED ROOT / CANON</div><div class="row"><button class="btn">NO</button><button class="btn yes">YES</button></div><p class="muted">NO → “Really, gurl?” → “NA-AH!” → manual correction</p>`],
+['BODY SELF-SELECTION',`<h1>Which one feels like you?</h1><p class="muted">Founder visual-inspection placeholder: 7 neutral alternatives. Exact superseding presentation UI is intentionally NOT guessed.</p><div class="grid">${bodyTiles}</div><div class="row"><button class="btn">CHOOSE AGAIN</button><button class="btn yes">THIS ONE</button></div>`],
+['MAIN HOME',`<div class="compact"><h1>SHALA</h1><b>MIRROR ON THE WALL</b><hr><button class="btn">EXPLORE</button><button class="btn">TREND ALERT</button><button class="btn">FAVORITES</button></div>`],
+['WORKSHOP',`<h1>What are we trying on?</h1>${['CLOTHES','BAGS','SHOES','ACCESSORIES'].map(x=>`<button class="btn">${x} — TRY ME</button>`).join('')}<p class="muted">Accessories V1: HAT · GLASSES · NECKLACE — one per interaction.</p>`],
+['POSE SELECTION',`<h1>Choose a Pose</h1><div class="poses">${Array.from({length:10},(_,x)=>`<button class="tile">POSE ${x+1}</button>`).join('')}</div><div class="row"><button class="btn">CHOOSE AGAIN</button><button class="btn yes">SELECT</button></div>`],
+['STUDIO SELECTION',`<h1>Choose a Studio</h1><div class="studio"><div class="blue"><h2>BLUE 1170 × 844</h2>Independent pan / zoom workspace<br>centered against RED 390 × 844</div></div><div class="studios">${['Indoor Office','Indoor Living Room','Indoor Disco','Outdoor Sunny Patio','Outdoor Golden Hour','My Studio'].map(x=>`<button class="tile">${x}</button>`).join('')}</div><div class="row"><button class="btn">CHOOSE AGAIN</button><button class="btn yes">SELECT</button></div>`],
+['REFERENCE',`<h1>Add Reference</h1><div class="box image">GARMENT / LOOK REFERENCE</div><button class="btn">SWAP</button><button class="btn yes">GENERATE</button>`],
+['ALBUS GENERATING',`<h1>ALBUS is doing the math...</h1><div class="box image">LOCAL V1 GENERATION PLACEHOLDER</div><p class="muted">Back / accidental navigation guarded during active transformation.</p>`],
+['THE REVEAL',`<h1>The Reveal</h1><div class="box image">RESULT IMAGE</div><label class="box"><input type="checkbox"> REFERENCE ○</label><button class="btn">⤓ Save to Device</button><button class="btn">♡ Favorite</button><button class="btn yes">↻ Try Another One</button>`],
+['TREND ALERT',`<h1>Trend Alert</h1><div class="box image">GACHA → TREND REVEAL</div><button class="btn yes">VIEW / OPEN ↗</button><p class="muted">Google Images · new tab · return preserves reveal state</p>`],
+['FAVORITES',`<h1>Favorites</h1>${[1,2,3].map(x=>`<div class="box">FAVORITE ${x}</div>`).join('')}<button class="btn">START AGAIN</button><button class="btn">NUCLEAR RESET</button>`]
+];function draw(){let [n,h]=pages[i];L.textContent=n;S.innerHTML=h}document.querySelector('#back').onclick=()=>{i=(i-1+pages.length)%pages.length;draw()};document.querySelector('#next').onclick=()=>{i=(i+1)%pages.length;draw()};draw();
