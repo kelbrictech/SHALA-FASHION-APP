@@ -2,138 +2,83 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>SHALA 1B Foundation PROVE Tests</title>
-  <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial} .ok{color:green} .fail{color:red}</style>
+  <title>SHALA 1B Foundation PROVE</title>
+  <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;max-width:860px;margin:24px auto;padding:0 16px}.ok{color:green}.fail{color:red}</style>
 </head>
 <body>
-  <h1>SHALA 1B Foundation PROVE Tests</h1>
+  <h1>SHALA 1B Foundation PROVE</h1>
   <div id="results"></div>
   <script type="module">
     import * as storage from '../src/foundation/storage.js';
 
     const resultsEl = document.getElementById('results');
+    let passed = 0, failed = 0;
     function report(name, ok, details='') {
+      ok ? passed++ : failed++;
       const el = document.createElement('div');
-      el.innerHTML = `${name}: <span class="${ok? 'ok':'fail'}">${ok? 'PASS':'FAIL'}</span> ${details}`;
+      el.innerHTML = `${name}: <span class="${ok?'ok':'fail'}">${ok?'PASS':'FAIL'}</span> ${details}`;
       resultsEl.appendChild(el);
+    }
+    async function expectReject(fn, code) {
+      try { await fn(); return false; } catch (e) { return e && e.message === code; }
+    }
+    async function rawSet(key, value) {
+      const req = indexedDB.open('shala_v1', 1);
+      const db = await new Promise((res, rej) => { req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error); });
+      await new Promise((res, rej) => {
+        const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(value,key);
+        tx.oncomplete=res; tx.onerror=()=>rej(tx.error); tx.onabort=()=>rej(tx.error);
+      });
+      db.close();
     }
 
     async function runTests() {
-      await storage.clearAll();
-      await storage.initStorage();
+      await storage.clearAll(); await storage.initStorage();
+      const profile={schemaVersion:1,height:170,weight:65,selectedCanonId:'canon-a',birthdayGiftOpened:true};
 
-      // 1. storage read/write proof (profile)
-      const profile = { schemaVersion:1, height:170, weight:65, selectedCanonId:'canon-a', birthdayGiftOpened:true };
       await storage.saveProfile(profile);
-      const loaded = await storage.loadProfile();
-      report('Profile persistence', loaded && loaded.height === 170);
+      let loaded=await storage.loadProfile();
+      report('01 Profile persistence', loaded?.height===170 && loaded?.birthdayGiftOpened===true);
 
-      // 2. Favorites 0->3 PASS
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        await storage.addFavorite({ id: 'fav1' });
-        await storage.addFavorite({ id: 'fav2' });
-        await storage.addFavorite({ id: 'fav3' });
-        const favs = await storage.getFavorites();
-        report('Favorites 0->3', favs.length === 3);
-      } catch (e) { report('Favorites 0->3', false, e.message); }
+      report('02 Invalid profile rejected', await expectReject(()=>storage.saveProfile({height:'170'}),'invalid_profile'));
+      report('03 Raw face cannot persist in profile', await expectReject(()=>storage.saveProfile({height:170,rawFaceMediaId:'face-raw'}),'invalid_profile'));
 
-      // 3. Favorite #4 rejection
-      try {
-        let ok = false;
-        try {
-          await storage.addFavorite({ id: 'fav4' });
-        } catch (err) {
-          ok = err && err.message === 'favorites_limit_exceeded';
-        }
-        report('Favorite #4 rejection', ok);
-      } catch (e) { report('Favorite #4 rejection', false, e.message); }
+      await storage.clearAll(); await storage.initStorage();
+      await storage.addFavorite({id:'f1'}); await storage.addFavorite({id:'f2'}); await storage.addFavorite({id:'f3'});
+      report('04 Favorites cap stores three', (await storage.getFavorites()).length===3);
+      report('05 Favorite #4 rejected', await expectReject(()=>storage.addFavorite({id:'f4'}),'favorites_limit_exceeded'));
 
-      // 4. START AGAIN preserves profile & favorites
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        await storage.saveProfile(profile);
-        await storage.addFavorite({ id: 'f1' });
-        await storage.saveActiveBuild({ selectedDomain: 'CLOTHES', selectedPoseId: 'POSE_01' });
-        await storage.startAgain();
-        const p = await storage.loadProfile();
-        const favs = await storage.getFavorites();
-        const active = await storage.loadActiveBuild();
-        report('START AGAIN preserves profile & favorites', p && favs.length === 1 && !active);
-      } catch (e) { report('START AGAIN preserves profile & favorites', false, e.message); }
+      report('06 Invalid domain rejected', await expectReject(()=>storage.saveActiveBuild({selectedDomain:'INVALID'}),'invalid_active_build'));
+      report('07 Invalid pose rejected', await expectReject(()=>storage.saveActiveBuild({selectedPoseId:'POSE_999'}),'invalid_active_build'));
+      report('08 Invalid studio rejected', await expectReject(()=>storage.saveActiveBuild({selectedStudioId:'STUDIO_999'}),'invalid_active_build'));
 
-      // 5. NUCLEAR RESET preserves Favorites and birthday flag, destroys profile
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        const prof = { height:170, birthdayGiftOpened:true };
-        await storage.saveProfile(prof);
-        await storage.addFavorite({ id:'keep1' });
-        await storage.nuclearReset();
-        const p2 = await storage.loadProfile();
-        const favs2 = await storage.getFavorites();
-        const meta = await storage.getMeta();
-        const ok = (!p2) && favs2.length === 1 && meta && meta.birthdayGiftOpened === true;
-        report('NUCLEAR RESET preserves favorites & birthday flag', ok);
-      } catch (e) { report('NUCLEAR RESET preserves favorites & birthday flag', false, e.message); }
+      report('09 Reference cannot equal Root', await expectReject(()=>storage.saveActiveBuild({currentRootMediaPointer:'root-1',currentReferenceMediaPointer:'root-1'}),'invalid_active_build'));
+      report('10 Candidate cannot equal Root before PASS', await expectReject(()=>storage.saveActiveBuild({currentRootMediaPointer:'root-1',candidateMediaPointer:'root-1'}),'invalid_active_build'));
 
-      // 6. Refresh/reload recovery simulation (persisted state survives reload)
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        await storage.saveProfile({ height:160 });
-        // simulate reload by re-instantiating module (in browser it's same DB)
-        const p = await storage.loadProfile();
-        report('Refresh/reload recovery', p && p.height === 160);
-      } catch (e) { report('Refresh/reload recovery', false, e.message); }
+      await storage.saveProfile(profile); await storage.saveActiveBuild({selectedDomain:'CLOTHES',currentRootMediaPointer:'root-1',currentReferenceMediaPointer:'ref-1',candidateMediaPointer:'cand-1',comparisonEnabled:true});
+      await storage.startAgain();
+      report('11 START AGAIN preserves persistent state', (await storage.loadProfile())?.height===170 && (await storage.getFavorites()).length===3 && (await storage.loadActiveBuild())===null);
 
-      // 7. malformed-record handling: write malformed and ensure load handles gracefully
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        // directly write malformed entry into IDB
-        await idbSetDirectTest('profile', 'not-an-object');
-        const p = await storage.loadProfile();
-        // Should return the stored value but the application must treat as invalid; here we assert it's not an object
-        report('Malformed-record handling (read)', typeof p !== 'object');
-      } catch (e) { report('Malformed-record handling (read)', false, e.message); }
+      await storage.saveActiveBuild({selectedDomain:'BAGS',currentRootMediaPointer:'root-2'});
+      await storage.nuclearReset();
+      loaded=await storage.loadProfile();
+      let meta=await storage.getMeta();
+      report('12 NUCLEAR RESET destroys profile/build', loaded===null && (await storage.loadActiveBuild())===null);
+      report('13 NUCLEAR RESET preserves Favorites + birthday after reload', (await storage.getFavorites()).length===3 && meta.birthdayGiftOpened===true);
 
-      // 8. Root/Reference/Candidate authority invariants: represented but not enforced at storage level
-      try {
-        await storage.clearAll();
-        await storage.initStorage();
-        await storage.saveActiveBuild({ currentRootMediaPointer: 'root-1', currentReferenceMediaPointer: 'ref-1', candidateMediaPointer: 'cand-1' });
-        const ab = await storage.loadActiveBuild();
-        const ok = ab.currentRootMediaPointer === 'root-1' && ab.currentReferenceMediaPointer === 'ref-1' && ab.candidateMediaPointer === 'cand-1';
-        report('Root/Reference/Candidate authority (storage presence)', ok);
-      } catch (e) { report('Root/Reference/Candidate authority (storage presence)', false, e.message); }
+      await rawSet('profile','not-an-object');
+      report('14 Malformed profile recovers deterministically', (await storage.loadProfile())===null && (await storage.getMeta()).recoveryStatus==='INVALID_PROFILE');
 
-      // 9. Schema version present
-      try {
-        const meta = await storage.getMeta();
-        report('Schema version present', meta && meta.schemaVersion === 1);
-      } catch (e) { report('Schema version present', false, e.message); }
+      await storage.clearAll(); await storage.initStorage();
+      await rawSet('meta',{schemaVersion:999,birthdayGiftOpened:true});
+      report('15 Incompatible schema fails closed without crash', (await storage.loadProfile())===null && (await storage.getMeta()).recoveryStatus==='SCHEMA_MISMATCH' && (await storage.getMeta()).birthdayGiftOpened===true);
 
-      // 10. No 1C+ dependency: quick check - files do not import future reducer types (best-effort)
-      report('No 1C+ dependency introduced (manual verification required)', true, 'Files added are foundation-only.');
-
-      // helper to directly set malformed value (small inline helper using IDB API)
-      async function idbSetDirectTest(key, val) {
-        const req = indexedDB.open('shala_v1', 1);
-        await new Promise((res, rej) => { req.onsuccess = res; req.onerror = rej; });
-        const db = req.result;
-        const tx = db.transaction('kv', 'readwrite');
-        const store = tx.objectStore('kv');
-        store.put(val, key);
-        await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
-        db.close();
-      }
-
+      const summary=document.createElement('h2');
+      summary.id='summary'; summary.textContent=`PROVE: ${passed} PASS / ${failed} FAIL`;
+      summary.className=failed?'fail':'ok'; resultsEl.prepend(summary);
+      document.title=`SHALA 1B PROVE — ${passed} PASS / ${failed} FAIL`;
     }
-
-    runTests();
+    runTests().catch(e=>report('UNHANDLED TEST ERROR',false,e.message));
   </script>
 </body>
 </html>
