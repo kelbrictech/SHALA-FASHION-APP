@@ -19,6 +19,7 @@ await t('Studio selection',async()=>{s=await transition(s,'SELECT_STUDIO',{studi
 await t('root cannot be reference',async()=>{try{await transition(s,'SET_REFERENCE',{pointer:'root-1'});throw Error('accepted')}catch(e){if(e.message==='accepted')throw e}});
 await t('reference acquisition',async()=>{s=await transition(s,'SET_REFERENCE',{pointer:'ref-1'});eq(s.activeBuild.currentReferenceMediaPointer,'ref-1')});
 await t('generation frame',async()=>{s=await transition(s,'BEGIN_GENERATION');eq(s.screen,SCREENS.GENERATING)});
+await t('SWAP rejected during generation',async()=>{if(s.screen!==SCREENS.GENERATING)throw Error('precondition_generation');let rejected=false;try{await transition(s,'SWAP_REFERENCE',{pointer:'will-not-apply'})}catch(e){rejected=true}if(!rejected)throw Error('swap_allowed_during_generation')});
 await t('back locked during generation',async()=>{try{await transition(s,'BACK');throw Error('accepted')}catch(e){eq(e.message,'navigation_locked')}});
 await t('root cannot be candidate',async()=>{try{await transition(s,'CANDIDATE_READY',{pointer:'root-1'});throw Error('accepted')}catch(e){if(e.message==='accepted')throw e}});
 await t('candidate does not replace Root before PASS',async()=>{s=await transition(s,'CANDIDATE_READY',{pointer:'candidate-1'});eq(s.activeBuild.currentRootMediaPointer,'root-1')});
@@ -33,5 +34,7 @@ await t('Trend external return preserves reveal',async()=>{s=await transition(s,
 await t('Favorites Compact route',async()=>{s=await transition(s,'OPEN_FAVORITES');eq(s.screen,SCREENS.FAVORITES);s=await transition(s,'RETURN_HOME');eq(s.screen,SCREENS.HOME)});
 await t('illegal transition rejected',async()=>{try{await transition(s,'SELECT_POSE',{poseId:'POSE_01'});throw Error('accepted')}catch(e){if(e.message==='accepted')throw e}});
 await t('Nuclear Reset returns onboarding',async()=>{s=await transition(s,'NUCLEAR_RESET');eq(s.screen,SCREENS.FACE)});
+await t('hydrate during generation (candidate present)',async()=>{const genBuild={selectedDomain:'CLOTHES',selectedPoseId:'POSE_01',currentRootMediaPointer:'root-regen',currentReferenceMediaPointer:'ref-regen',candidateMediaPointer:'candidate-regen',pendingReveal:false};await storage.clearAll();await storage.initStorage();await storage.saveActiveBuild(genBuild);const h=await hydrate();eq(h.screen,SCREENS.GENERATING)});
+await t('hydrate preserves comparison state',async()=>{const compBuild={selectedDomain:'CLOTHES',selectedPoseId:'POSE_01',currentRootMediaPointer:'root-comp',currentReferenceMediaPointer:'ref-comp',candidateMediaPointer:null,pendingReveal:true,comparisonEnabled:true};await storage.clearAll();await storage.initStorage();await storage.saveActiveBuild(compBuild);const h=await hydrate();ok(h.comparisonEnabled);eq(h.screen,SCREENS.REVEAL)});
 const heading=`PROVE: ${pass} PASS / ${fail} FAIL`;out.insertAdjacentHTML('afterbegin',`<h2>${heading}</h2>`);document.title=heading;
 </script>
