@@ -1,0 +1,46 @@
+name: SHALA 1F PROVE
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - shala-1e-copilot
+    paths:
+      - 'client/**'
+      - 'run_prove.js'
+      - 'run_1c_prove.js'
+      - 'run_1d_prove.js'
+      - 'run_1e_prove.js'
+      - 'run_1f_prove.js'
+      - '.github/workflows/prove-1f.yml'
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Puppeteer
+        run: npm install --no-save puppeteer
+      - name: Run 1B regression
+        run: node run_prove.js
+      - name: Run 1C regression
+        run: node run_1c_prove.js
+      - name: Run 1D regression
+        run: node run_1d_prove.js
+      - name: Run 1E regression
+        run: node run_1e_prove.js
+      - name: Run 1F PROVE
+        run: node run_1f_prove.js
+      - name: Upload V1 PROVE artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shala-v1-1f-prove-artifacts
+          path: |
+            prove-artifacts
+            prove-artifacts-1c
+            prove-artifacts-1d
+            prove-artifacts-1e
+            prove-artifacts-1f
+          if-no-files-found: warn

@@ -1,0 +1,37 @@
+name: SHALA 1D PROVE
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'run_1d_prove.js'
+      - 'client/src/roughins/**'
+      - 'client/src/framing/**'
+      - 'client/src/foundation/**'
+      - 'client/tests/1d.html'
+      - '.github/workflows/prove-1d.yml'
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Puppeteer
+        run: npm install --no-save puppeteer
+      - name: Run 1B regression PROVE
+        run: node run_prove.js
+      - name: Run 1C regression PROVE
+        run: node run_1c_prove.js
+      - name: Run 1D PROVE
+        run: node run_1d_prove.js
+      - name: Upload 1D and regression PROVE artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shala-1d-prove-artifacts
+          path: |
+            prove-artifacts
+            prove-artifacts-1c
+            prove-artifacts-1d
+          if-no-files-found: warn

@@ -1,0 +1,3 @@
+// Pure projection: never mutates framing authority.
+import {RED,BLUE} from './geometry.js';
+export function project(state){const b=state.activeBuild||null;return Object.freeze({screen:state.screen,red:RED,blue:BLUE,domain:b?.selectedDomain||null,poseId:b?.selectedPoseId||null,studioId:b?.selectedStudioId||null,root:b?.currentRootMediaPointer||null,reference:b?.currentReferenceMediaPointer||null,pendingReveal:Boolean(b?.pendingReveal),comparison:state.comparisonEnabled?{enabled:true,left:b?.currentReferenceMediaPointer||null,right:b?.currentRootMediaPointer||null}:{enabled:false},navigationLocked:state.screen==='ALBUS_GENERATING',werk:Boolean(state.werk),error:state.error||null});}
