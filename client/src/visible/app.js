@@ -1,10 +1,15 @@
+import { DOMAINS, POSES, STUDIOS } from '../foundation/schema.js';
+
 const S=document.querySelector('#screen'),L=document.querySelector('#screenLabel');
 let i=0;
 const BDAY_KEY='shala_1e_birthday_opened';
 const LANDSCAPE_PAGES=new Set(['THE REVEAL','FAVORITES']);
 const bodyTiles=Array.from({length:7},(_,x)=>`<button class="tile">body${x+1}</button>`).join('');
-const poseTiles=Array.from({length:10},(_,x)=>`<button class="tile">pose${x+1}</button>`).join('');
+const poseTiles=POSES.map((_,x)=>`<button class="tile">pose${x+1}</button>`).join('');
+const STUDIO_LABELS=Object.freeze({STUDIO_01:'indoor office',STUDIO_02:'indoor living room',STUDIO_03:'indoor disco',STUDIO_04:'outdoor sunny patio',STUDIO_05:'outdoor golden hour',MY_STUDIO:'my studio'});
+const studioTiles=STUDIOS.map(id=>`<button class="tile">${STUDIO_LABELS[id]??id.toLowerCase().replaceAll('_',' ')}</button>`).join('');
 const domainPage=(name,image)=>`<h1>${name}</h1><div class="box image">${image}</div><button class="btn">upload icon</button><button class="btn">camera icon</button><button class="btn yes">slap it</button><button class="btn">swap</button><button class="btn">skip</button><button class="btn">reference toggle</button><button class="btn">compact</button>`;
+const domainPages=DOMAINS.map((id,x)=>[id,domainPage(id.charAt(0)+id.slice(1).toLowerCase(),`IMAGE ${x+3}`)]);
 const pages=[
 ['SPLASH',`<div class="centerPage"><div class="logoMark">SHALA</div><div class="box image">page1</div><button class="tapIcon" data-go="1">tap me</button></div>`],
 ['DEDICATION',`<div class="centerPage"><div class="logoMark small">SHALA</div><h1>Ang app para kay RASYELA</h1><div class="box image">page 2</div></div>`],
@@ -22,11 +27,8 @@ const pages=[
 ['BODY SELF-SELECTION',`<h1>Body Self-Selection</h1><div class="box image">page 9</div><div class="grid">${bodyTiles}</div><button class="btn">this one</button><button class="btn yes">yes pls</button><button class="btn">pick again</button>`],
 ['WORKSHOP',`<h1>Workshop</h1><div class="box image">page 10</div><button class="btn">compact</button><button class="btn">clothes rack</button><button class="btn">try me clothes</button><button class="btn">try me bags</button><button class="btn">shoes rack</button><button class="btn">try me shoes</button><button class="btn">bookshelf</button><button class="btn">try me accessories</button><button class="btn yes">yes pls</button><button class="btn">pick again</button>`],
 ['POSE SELECTION',`<h1>Pose Selection</h1><div class="box image">page 10</div><div class="poses">${poseTiles}</div><button class="btn yes">yes pls</button><button class="btn">pick again</button><button class="btn">compact</button>`],
-['STUDIO SELECTION',`<h1>Studio Selection</h1><div class="box image">page 11</div><div class="studios">${['indoor office','indoor living room','indoor disco','outdoor sunny patio','outdoor golden hour','my studio'].map(x=>`<button class="tile">${x}</button>`).join('')}</div><button class="btn yes">yes pls</button><button class="btn">pick again</button><button class="btn">compact</button>`],
-['CLOTHES',domainPage('Clothes','IMAGE 3')],
-['BAGS',domainPage('Bags','IMAGE 4')],
-['SHOES',domainPage('Shoes','IMAGE 5')],
-['ACCESSORIES',domainPage('Accessories','IMAGE 6')],
+['STUDIO SELECTION',`<h1>Studio Selection</h1><div class="box image">page 11</div><div class="studios">${studioTiles}</div><button class="btn yes">yes pls</button><button class="btn">pick again</button><button class="btn">compact</button>`],
+...domainPages,
 ['ALBUS GENERATING',`<h1>ALBUS is doing the math...</h1><div class="box image">page 22</div>`],
 ['THE REVEAL',`<h1>The Reveal</h1><div class="box image">IMAGE Y</div><button class="btn">heart icon</button><button class="btn">download icon</button><button class="btn">refresh icon</button><button class="btn">compact</button><button class="btn">reference toggle</button>`],
 ['TREND ALERT',`<h1>Trend Alert</h1><div class="box image">page 24</div><button class="btn">roll again</button><button class="btn yes">that's interesting</button><button class="btn">compact</button>`],
