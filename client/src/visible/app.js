@@ -1,6 +1,7 @@
 const S=document.querySelector('#screen'),L=document.querySelector('#screenLabel');
 let i=0;
 const BDAY_KEY='shala_1e_birthday_opened';
+const LANDSCAPE_PAGES=new Set(['THE REVEAL','FAVORITES']);
 const bodyTiles=Array.from({length:7},(_,x)=>`<button class="tile">body${x+1}</button>`).join('');
 const poseTiles=Array.from({length:10},(_,x)=>`<button class="tile">pose${x+1}</button>`).join('');
 const pages=[
@@ -28,12 +29,34 @@ const pages=[
 ['FAVORITES',`<h1>Favorites</h1>${[1,2,3].map(x=>`<div class="box">FAVORITE ${x}</div>`).join('')}<button class="btn">START AGAIN</button><button class="btn">NUCLEAR RESET</button>`]
 ];
 function go(n){i=Math.max(0,Math.min(pages.length-1,n));draw()}
+function isMobileBrowser(){
+ const coarse=window.matchMedia&&window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+ const ua=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
+ return ua||coarse;
+}
+function isPortrait(){return window.innerHeight>window.innerWidth}
+function applyOrientationGate(){
+ const pageName=pages[i]?.[0];
+ const shouldGate=LANDSCAPE_PAGES.has(pageName)&&isMobileBrowser()&&isPortrait();
+ let gate=document.querySelector('#orientationGate');
+ if(shouldGate&&!gate){
+   gate=document.createElement('div');
+   gate.id='orientationGate';
+   gate.className='orientation-gate';
+   gate.innerHTML='<div class="orientation-card"><div class="rotate-icon">↻</div><h2>Shift to landscape mode</h2><p>Rotate your phone to continue.</p></div>';
+   document.body.appendChild(gate);
+ }
+ if(!shouldGate&&gate) gate.remove();
+}
 function draw(){
  const [n,h]=pages[i];L.textContent=n;S.innerHTML=h;
  S.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>go(Number(el.dataset.go)));
  const birthday=S.querySelector('#finishBirthday');
  if(birthday) birthday.onclick=()=>{localStorage.setItem(BDAY_KEY,'1');go(7)};
+ applyOrientationGate();
 }
 document.querySelector('#back').onclick=()=>go(i-1);
 document.querySelector('#next').onclick=()=>go(i+1);
+window.addEventListener('resize',applyOrientationGate);
+window.addEventListener('orientationchange',applyOrientationGate);
 draw();
