@@ -4,6 +4,7 @@ const BDAY_KEY='shala_1e_birthday_opened';
 const LANDSCAPE_PAGES=new Set(['THE REVEAL','FAVORITES']);
 const bodyTiles=Array.from({length:7},(_,x)=>`<button class="tile">body${x+1}</button>`).join('');
 const poseTiles=Array.from({length:10},(_,x)=>`<button class="tile">pose${x+1}</button>`).join('');
+const domainPage=(name,image)=>`<h1>${name}</h1><div class="box image">${image}</div><button class="btn">upload icon</button><button class="btn">camera icon</button><button class="btn yes">slap it</button><button class="btn">swap</button><button class="btn">skip</button><button class="btn">reference toggle</button><button class="btn">compact</button>`;
 const pages=[
 ['SPLASH',`<div class="centerPage"><div class="logoMark">SHALA</div><div class="box image">page1</div><button class="tapIcon" data-go="1">tap me</button></div>`],
 ['DEDICATION',`<div class="centerPage"><div class="logoMark small">SHALA</div><h1>Ang app para kay RASYELA</h1><div class="box image">page 2</div></div>`],
@@ -22,11 +23,15 @@ const pages=[
 ['WORKSHOP',`<h1>Workshop</h1><div class="box image">page 10</div><button class="btn">compact</button><button class="btn">clothes rack</button><button class="btn">try me clothes</button><button class="btn">try me bags</button><button class="btn">shoes rack</button><button class="btn">try me shoes</button><button class="btn">bookshelf</button><button class="btn">try me accessories</button><button class="btn yes">yes pls</button><button class="btn">pick again</button>`],
 ['POSE SELECTION',`<h1>Pose Selection</h1><div class="box image">page 10</div><div class="poses">${poseTiles}</div><button class="btn yes">yes pls</button><button class="btn">pick again</button><button class="btn">compact</button>`],
 ['STUDIO SELECTION',`<h1>Studio Selection</h1><div class="box image">page 11</div><div class="studios">${['indoor office','indoor living room','indoor disco','outdoor sunny patio','outdoor golden hour','my studio'].map(x=>`<button class="tile">${x}</button>`).join('')}</div><button class="btn yes">yes pls</button><button class="btn">pick again</button><button class="btn">compact</button>`],
-['REFERENCE',`<h1>Add Reference</h1><div class="box image">GARMENT / LOOK REFERENCE</div><button class="btn">SWAP</button><button class="btn yes">GENERATE</button>`],
-['ALBUS GENERATING',`<h1>ALBUS is doing the math...</h1><div class="box image">LOCAL V1 GENERATION PLACEHOLDER</div>`],
-['THE REVEAL',`<h1>The Reveal</h1><div class="box image">RESULT IMAGE</div><label class="box"><input type="checkbox"> REFERENCE ○</label><button class="btn">⤓ Save to Device</button><button class="btn">♡ Favorite</button><button class="btn yes">↻ Try Another One</button>`],
-['TREND ALERT',`<h1>Trend Alert</h1><div class="box image">GACHA → TREND REVEAL</div><button class="btn yes">VIEW / OPEN ↗</button>`],
-['FAVORITES',`<h1>Favorites</h1>${[1,2,3].map(x=>`<div class="box">FAVORITE ${x}</div>`).join('')}<button class="btn">START AGAIN</button><button class="btn">NUCLEAR RESET</button>`]
+['CLOTHES',domainPage('Clothes','IMAGE 3')],
+['BAGS',domainPage('Bags','IMAGE 4')],
+['SHOES',domainPage('Shoes','IMAGE 5')],
+['ACCESSORIES',domainPage('Accessories','IMAGE 6')],
+['ALBUS GENERATING',`<h1>ALBUS is doing the math...</h1><div class="box image">page 22</div>`],
+['THE REVEAL',`<h1>The Reveal</h1><div class="box image">IMAGE Y</div><button class="btn">heart icon</button><button class="btn">download icon</button><button class="btn">refresh icon</button><button class="btn">compact</button><button class="btn">reference toggle</button>`],
+['TREND ALERT',`<h1>Trend Alert</h1><div class="box image">page 24</div><button class="btn">roll again</button><button class="btn yes">that's interesting</button><button class="btn">compact</button>`],
+['FAVORITES',`<h1>Favorites</h1>${[1,2,3].map(x=>`<div class="box">favorite ${x}</div>`).join('')}<button class="btn">compact</button><button class="btn">view toggle</button><button class="btn">download icon</button>`],
+['COMPACT UNDERSIDE',`<h1>Compact Underside</h1><div class="box image">page 26</div><button class="btn">compact</button><button class="btn">no-no button</button>`]
 ];
 function go(n){i=Math.max(0,Math.min(pages.length-1,n));draw()}
 function isMobileBrowser(){
