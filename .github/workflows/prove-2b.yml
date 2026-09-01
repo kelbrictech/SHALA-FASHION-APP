@@ -1,0 +1,33 @@
+name: SHALA 2B PROVE
+on:
+  workflow_dispatch:
+  push:
+    branches: [shala-v2-2a-adam]
+    paths:
+      - 'client/src/v2/**'
+      - 'run_2b_prove.js'
+      - '.github/workflows/prove-2b.yml'
+permissions:
+  contents: read
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run V1 1B regression
+        run: node run_prove.js
+      - name: Run V1 1C regression
+        run: node run_1c_prove.js
+      - name: Run V1 1D regression
+        run: node run_1d_prove.js
+      - name: Run V1 1E regression
+        run: node run_1e_prove.js
+      - name: Install Puppeteer for V1 1F
+        run: npm install --no-save puppeteer
+      - name: Run V1 1F regression
+        run: node run_1f_prove.js
+      - name: Run V2 2B Foundation tests
+        run: node run_2b_prove.js
