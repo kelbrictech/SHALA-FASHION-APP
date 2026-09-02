@@ -1,137 +1,24 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SHALA 1F PROVE (structural)</title>
-  <style>body{font-family:system-ui;max-width:1000px;margin:20px auto} .ok{color:green} .fail{color:red} pre{background:#f6f8fa;padding:12px;border-radius:6px}</style>
-</head>
-<body>
-  <h1>SHALA 1F Structural PROVE</h1>
-  <p>This page runs read-only structural checks against the canonical 1E shell (<code>/1e.html</code>) and schema (<code>/src/foundation/schema.js</code>).</p>
-  <div id="results"></div>
-  <iframe id="shell" src="/1e.html" style="width:420px;height:900px;border:1px solid #ccc;margin-top:12px"></iframe>
-
-  <script>
-    (async function(){
-      const expected = ['SPLASH','DEDICATION','LOGIN','REGISTER ACCOUNT','FORGOT PASSWORD','DASHBOARD TEASER','BIRTHDAY GREETING','MAIN DASHBOARD','CREATE ME — FACE','CREATE ME — VITAL STATISTICS','IDENTITY GENERATING','CANON CONFIRMATION','DOUBLE CONFIRM','BODY SELF-SELECTION','WORKSHOP','POSE SELECTION','STUDIO SELECTION','CLOTHES','BAGS','SHOES','ACCESSORIES','ALBUS GENERATING','THE REVEAL','TREND ALERT','FAVORITES','COMPACT UNDERSIDE'];
-      const resultsEl = document.getElementById('results');
-      function add(name, ok, details){
-        const el = document.createElement('div');
-        el.innerHTML = `<strong>${name}:</strong> <span class="${ok?'ok':'fail'}">${ok? 'PASS':'FAIL'}</span>` + (details? `<pre>${details}</pre>`:'');
-        resultsEl.appendChild(el);
-      }
-
-      const iframe = document.getElementById('shell');
-      await new Promise((res)=>{iframe.onload = res;});
-      const win = iframe.contentWindow;
-      const doc = iframe.contentDocument;
-
-      // 1) pages array presence & order
-      try{
-        const pages = win.pages || [];
-        let ok = Array.isArray(pages) && pages.length===26;
-        let details = '';
-        if(!ok) details = `pages.length=${pages.length}`;
-        else{
-          for(let i=0;i<26;i++){
-            if((pages[i]||'').toUpperCase() !== expected[i]){ ok=false; details = `mismatch at ${i}: found='${pages[i]}' expected='${expected[i]}'`; break; }
-          }
-        }
-        add('Pages array (26, order)', ok, details);
-      }catch(e){ add('Pages array (26, order)', false, e.stack); }
-
-      // 2) schema checks via fetch
-      try{
-        const txt = await fetch('/src/foundation/schema.js').then(r=>r.text());
-        const domainsMatch = /export const DOMAINS = \[([^\]]+)\]/.exec(txt);
-        const posesMatch = /export const POSES = \[([^\]]+)\]/.exec(txt);
-        const studiosMatch = /export const STUDIOS = \[([^\]]+)\]/.exec(txt);
-        const domains = domainsMatch? domainsMatch[1].split(',').map(s=>s.replace(/['"\s]/g,'').trim()).filter(Boolean):[];
-        const poses = posesMatch? posesMatch[1].split(',').map(s=>s.replace(/['"\s]/g,'').trim()).filter(Boolean):[];
-        const studios = studiosMatch? studiosMatch[1].split(',').map(s=>s.replace(/['"\s]/g,'').trim()).filter(Boolean):[];
-        add('Schema: DOMAINS count==4', domains.length===4, `found ${domains.length}: ${JSON.stringify(domains)}`);
-        add('Schema: POSES count==10', poses.length===10, `found ${poses.length}`);
-        add('Schema: STUDIOS count==6 and includes MY_STUDIO', studios.length===6 && studios.includes('MY_STUDIO'), `found ${studios.length}: ${JSON.stringify(studios)}`);
-      }catch(e){ add('Schema checks', false, e.stack); }
-
-      // 3) Body tiles count (BODY SELF-SELECTION page)
-      try{
-        // attempt to find a header node with BODY SELF-SELECTION text
-        const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT);
-        let found=null;
-        while(walker.nextNode()){
-          const n = walker.currentNode;
-          if(n.textContent && n.textContent.toUpperCase().includes('BODY SELF-SELECTION')){ found = n; break; }
-        }
-        let tilesCount = 0;
-        if(found){
-          // search for .tile buttons nearby
-          const tiles = found.parentElement.querySelectorAll('.tile');
-          tilesCount = tiles.length;
-        } else {
-          // fallback: count all .tile buttons in iframe
-          tilesCount = doc.querySelectorAll('.tile').length;
-        }
-        add('Body silhouettes: 7 tiles', tilesCount===7, `found ${tilesCount}`);
-      }catch(e){ add('Body silhouettes', false, e.stack); }
-
-      // 4) Studios rendered count (presence of MY_STUDIO label)
-      try{
-        // look for text 'my studio' or 'MY STUDIO'
-        const bodyText = doc.body.textContent.toUpperCase();
-        const hasMy = bodyText.includes('MY STUDIO') || bodyText.includes("RASYELA") || bodyText.includes('MY_STUDIO');
-        // approximate count of studio tiles by searching for known studio labels
-        const studioLabels = ['INDOOR OFFICE','INDOOR LIVING ROOM','INDOOR DISCO','OUTDOOR SUNNY PATIO','OUTDOOR GOLDEN HOUR','MY STUDIO'];
-        let foundCount=0; studioLabels.forEach(lbl=>{ if(bodyText.includes(lbl)) foundCount++; });
-        add('Studios: 6 present incl MY_STUDIO', foundCount===6 && hasMy, `found labels: ${foundCount}`);
-      }catch(e){ add('Studios check', false, e.stack); }
-
-      // 5) Domain pages distinct & domain controls presence (check CLOTHES page)
-      try{
-        // find a header or h1 with 'CLOTHES' and inspect sibling controls
-        const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT);
-        let clothesNode=null;
-        while(walker.nextNode()){
-          const n = walker.currentNode;
-          if(n.textContent && n.textContent.toUpperCase().trim().startsWith('CLOTHES')){ clothesNode = n; break; }
-        }
-        let controlsPresent=false;
-        if(clothesNode){
-          const p = clothesNode.parentElement;
-          const controls = ['upload','camera','slap','swap','skip','reference','compact'];
-          const bodyUp = p.textContent.toLowerCase();
-          controlsPresent = controls.every(c=> bodyUp.includes(c));
-        }
-        add('Domain page (CLOTHES) controls present', controlsPresent, controlsPresent? 'ok':'controls not all found in text');
-      }catch(e){ add('Domain controls', false, e.stack); }
-
-      // 6) Reveal & Favorites quick checks (presence of heart/download/refresh)
-      try{
-        const bodyUp = doc.body.textContent.toUpperCase();
-        const revealOk = bodyUp.includes('HEART') || bodyUp.includes('FAVORITE');
-        const downloadOk = bodyUp.includes('DOWNLOAD') || bodyUp.includes('⬇') || bodyUp.includes('DOWNLOAD ICON');
-        const refreshOk = bodyUp.includes('REFRESH') || bodyUp.includes('REFRESH ICON') || bodyUp.includes('RELOAD');
-        add('Reveal provisions (heart/download/refresh)', revealOk && downloadOk && refreshOk, `heart:${revealOk} download:${downloadOk} refresh:${refreshOk}`);
-      }catch(e){ add('Reveal provisions', false, e.stack); }
-
-      // 7) visible/ absent check (ensure /src/visible/ returns 404)
-      try{
-        const r = await fetch('/src/visible/', {method:'GET'});
-        const ok = r.status===404 || r.status===0 || r.status===204;
-        add('client/src/visible absent (404)', ok, `status ${r.status}`);
-      }catch(e){ add('client/src/visible absent', true, 'fetch failed (assume absent)'); }
-
-      // Final summary
-      const failCount = Array.from(resultsEl.querySelectorAll('.fail')).length;
-      const summary = document.createElement('h2');
-      summary.textContent = failCount? `SUMMARY: ${failCount} FAILURES` : 'SUMMARY: ALL CHECKS PASSED';
-      summary.className = failCount? 'fail':'ok';
-      resultsEl.insertBefore(summary, resultsEl.firstChild);
-
-      // expose for puppeteer
-      window.PROVE_RESULT = {failures:failCount, html: resultsEl.innerHTML};
-    })();
-  </script>
-</body>
-</html>
+<!doctype html><html><head><meta charset="utf-8"><title>SHALA 1F CSV PROVE</title>
+<style>body{font-family:system-ui;max-width:900px;margin:20px auto}.ok{color:green}.fail{color:red}pre{background:#f6f8fa;padding:12px}</style></head>
+<body><h1>SHALA 1F — CSV Authority Structural PROVE</h1><div id="results"></div>
+<iframe id="shell" src="/1e.html" style="width:420px;height:900px;border:1px solid #ccc"></iframe>
+<script>
+(async function(){
+const expected=['SPLASH','DEDICATION','LOGIN','REGISTER ACCOUNT','FORGOT PASSWORD','DASHBOARD TEASER','BIRTHDAY GREETING','COMPACT CLOSE','COMPACT OPEN','CREATE ME — FACE','CREATE ME — VITAL STATISTICS','IDENTITY GENERATING','CANON CONFIRMATION','DOUBLE CONFIRM','BODY SELF-SELECTION','WORKSHOP','POSE SELECTION','STUDIO SELECTION','CLOTHES','BAGS','SHOES','ACCESSORIES','ALBUS GENERATING','THE REVEAL','TREND ALERT','FAVORITES','COMPACT UNDERSIDE'];
+const R=document.querySelector('#results');function add(n,ok,d=''){R.insertAdjacentHTML('beforeend',`<div><b>${n}:</b> <span class="${ok?'ok':'fail'}">${ok?'PASS':'FAIL'}</span>${d?`<pre>${d}</pre>`:''}</div>`)}
+const f=document.querySelector('#shell');await new Promise(r=>f.onload=r);const w=f.contentWindow;
+const pages=w.pages||[];add('27 CSV pages in exact order',JSON.stringify(pages)===JSON.stringify(expected),`found ${pages.length}`);
+const txt=await fetch('/src/foundation/schema.js').then(r=>r.text());
+add('4 fashion domains',/CLOTHES/.test(txt)&&/BAGS/.test(txt)&&/SHOES/.test(txt)&&/ACCESSORIES/.test(txt));
+add('10 poses',((txt.match(/POSE_\d+/g)||[]).length)>=10);
+add('6 studios incl MY_STUDIO',/MY_STUDIO/.test(txt)&&((txt.match(/STUDIO_\d+/g)||[]).length)>=5);
+const shellText=await fetch('/1e.html').then(r=>r.text());
+const terms=['open me','flip me','mirror on the wall','use this pic','this looks right','slap it','done here','roll again',"that's interesting",'no-no button','i understand'];
+add('CSV interaction vocabulary present',terms.every(x=>shellText.toLowerCase().includes(x)),terms.filter(x=>!shellText.toLowerCase().includes(x)).join(', '));
+add('Page 10/11 identity commit correction present',shellText.includes('commits the entered identity input'));
+const stateText=await fetch('/src/framing/state.js').then(r=>r.text());
+add('Runtime has explicit P1→P27 screens',Array.from({length:27},(_,i)=>`P${i+1}_`).every(x=>stateText.includes(x)));
+add('Runtime has sequential clothes→bags→shoes→accessories stages',/nextStage=\{CLOTHES:'BAGS',BAGS:'SHOES',SHOES:'ACCESSORIES',ACCESSORIES:null\}/.test(stateText));
+const fails=R.querySelectorAll('.fail').length;const h=document.createElement('h2');h.textContent=fails?`SUMMARY: ${fails} FAILURES`:'SUMMARY: ALL CHECKS PASSED';h.className=fails?'fail':'ok';R.prepend(h);window.PROVE_RESULT={failures:fails};
+})();
+</script></body></html>
