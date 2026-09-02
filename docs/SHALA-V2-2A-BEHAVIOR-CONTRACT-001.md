@@ -1,14 +1,44 @@
 # SHALA — V2 2A BEHAVIOR CONTRACT
 
-**Document ID:** SHALA-V2-2A-BEHAVIOR-CONTRACT-001  
+**Document ID:** `SHALA-V2-2A-BEHAVIOR-CONTRACT-001`  
 **Authorization:** `APPROVED — SHALA-BUILD-V2-2A-001`  
-**Status:** BUILD 2A
+**Status:** BUILD 2A — amended by `SHALA-27-PAGE-TOPOLOGY-MIGRATION-001`
 
 ## Governing Rule
 No V2 behavior is invented merely because a V1 control exists. Known canon is contracted below; unresolved behavior is explicitly deferred/flagged.
 
-## Frozen topology
-V1 topology remains 26 surfaces. V2 changes behavior, not page inventory.
+## Frozen topology — amended
+Current Founder authority is **27 pages**.
+
+1. SPLASH
+2. DEDICATION
+3. LOGIN
+4. REGISTER ACCOUNT
+5. FORGOT PASSWORD
+6. DASHBOARD TEASER
+7. BIRTHDAY GREETING
+8. COMPACT CLOSE
+9. COMPACT OPEN
+10. CREATE ME — FACE
+11. CREATE ME — VITAL STATISTICS
+12. IDENTITY GENERATING
+13. CANON CONFIRMATION
+14. DOUBLE CONFIRM
+15. BODY SELF-SELECTION
+16. WORKSHOP
+17. POSE SELECTION
+18. STUDIO SELECTION
+19. CLOTHES
+20. BAGS
+21. SHOES
+22. ACCESSORIES
+23. ALBUS GENERATING
+24. THE REVEAL
+25. TREND ALERT
+26. FAVORITES
+27. COMPACT UNDERSIDE
+
+The former single Page 8 Main Dashboard is superseded by distinct visible Compact Close and Compact Open pages. This amendment does not change persistence, domain, pose, Studio, body, media-lineage, reset, or orientation contracts.
 
 ## State classes
 - **Account-persistent:** account identity/profile once backend persistence is connected.
@@ -18,90 +48,75 @@ V1 topology remains 26 surfaces. V2 changes behavior, not page inventory.
 - **Protected:** last successful accepted image/root. Candidate failure/rejection never overwrites it.
 
 ## Canonical journey
-`Splash → Dedication → Login/Register → Dashboard → CREATE ME → Workshop → Pose → Studio → Clothes → Bags → Shoes → Accessories → Reveal`
+`Splash → Dedication → Login/Register → Dashboard Teaser/Birthday → Compact Close → Compact Open → CREATE ME or Workshop → Pose → Studio → Clothes → Bags → Shoes → Accessories → Reveal`
 
-Supporting routes: Dashboard ↔ Trends; Dashboard ↔ Favorites; Compact provides contextual navigation without changing canonical domain order.
+Supporting routes: Compact Open ↔ Trends; Compact Open ↔ Favorites; Compact provides contextual navigation without changing canonical domain order.
 
 ## Surface behavior contract
 1. **Splash** — TAP ME advances to Dedication.
-2. **Dedication** — acknowledgement/continuation advances to Login; no product state mutation.
-3. **Login** — OPEN SESAME validates required credentials then enters Dashboard path; SIGN ME UP opens Register; I FORGOT opens Forgot Password.
+2. **Dedication** — continuation advances to Login; no product-state mutation.
+3. **Login** — OPEN SESAME validates required prototype credentials then enters Dashboard path; SIGN ME UP opens Register; I FORGOT opens Forgot Password.
 4. **Register Account** — validates name/password/confirmation; ALL DONE submits/continues; BRING ME BACK returns Login.
 5. **Forgot Password** — accepts recovery input; PRAY THIS WORKS initiates recovery contract; BRING ME BACK returns Login.
-6. **Dashboard Teaser** — envelope opens Birthday Greeting when eligible; otherwise continues to Main Dashboard.
-7. **Birthday Greeting** — heart acknowledges gift and continues; birthday-opened flag is persistent when backend is connected.
-8. **Main Dashboard** — Compact cover opens/closes; MIRROR ON THE WALL enters CREATE ME; EXPLORE enters Workshop; TRENDS enters Trend Alert; FAVORITES enters Favorites.
-9. **CREATE ME — Face** — upload/camera establishes identity-source candidate; USE THIS PIC accepts it and advances to Vital Statistics. Raw face handling follows architecture privacy contract.
-10. **CREATE ME — Vital Statistics** — cm/ft-in and kg/lb are bidirectionally synchronized; bust/waist/hips captured; THIS LOOKS RIGHT requires valid complete values, normalizes internally, then advances.
-11. **Identity Generating** — transient ALBUS calculation state; deterministic resolver produces one of 63 canon seeds and advances automatically.
-12. **Canon Confirmation** — SPOT ON accepts resolved canon; NOT QUITE opens Double Confirm.
-13. **Double Confirm** — NA-AH! enters Body Self-Selection; FINE! accepts proposed canon; THE BODY THO enters Body Self-Selection while preserving identity lock.
-14. **Body Self-Selection** — exactly seven visual geometry choices; THIS ONE selects; YES PLS accepts selected override; PICK AGAIN clears/reopens selection.
-15. **Workshop** — canonical domain choices remain CLOTHES/BAGS/SHOES/ACCESSORIES; TRY ME begins/continues active build at chosen valid point without silently reordering canonical transformation lineage; Compact available.
-16. **Pose Selection** — exactly 10 poses; selecting previews state; YES PLS accepts; PICK AGAIN clears; Compact available.
-17. **Studio Selection** — six Studios: five standard + My Studio; selection previews; YES PLS accepts; PICK AGAIN clears; Compact available.
-18. **Clothes** — upload/camera sets clothes reference; SLAP IT submits transformation; SWAP replaces only active reference; SKIP advances without corrupting root; REFERENCE toggle controls reference display/use contract; Compact available.
-19. **Bags** — same interaction contract, Bags domain only.
-20. **Shoes** — same interaction contract, Shoes domain only.
-21. **Accessories** — same interaction contract, Accessories domain only.
-22. **ALBUS Generating** — transient generation state; blocks duplicate submission; success creates candidate; recoverable failure returns to originating domain with protected root intact.
-23. **The Reveal** — displays accepted/final candidate state; heart favorites; download invokes save/download contract; refresh/Try Another One returns to appropriate build continuation; REFERENCE toggles comparison/reference view; Compact available. Mobile portrait is gated; landscape/desktop released.
-24. **Trend Alert** — ROLL AGAIN requests another trend item; THAT'S INTERESTING records/acknowledges interest contract; Compact available.
-25. **Favorites** — displays maximum three protected favorite slots per current architecture; favorite selection/view toggle and download operate on selected favorite; Compact available. Mobile portrait gated; landscape/desktop released.
-26. **Compact Underside** — Compact closes/returns to invoking context; NO-NO button remains a deliberate non-destructive refusal/exit affordance; exact destructive semantics are not invented in 2A.
+6. **Dashboard Teaser** — envelope opens Birthday Greeting when eligible; otherwise continues toward Compact.
+7. **Birthday Greeting** — heart acknowledges gift and continues to Compact Close; birthday-opened flag is persistent when backend is connected.
+8. **Compact Close** — closed Compact presentation; cover flip opens Compact Open. No profile/build mutation.
+9. **Compact Open** — open Compact presentation; MIRROR ON THE WALL enters CREATE ME; EXPLORE enters Workshop; TRENDS enters Trend Alert; FAVORITES enters Favorites; closing returns to Compact Close when invoked as the home Compact.
+10. **CREATE ME — Face** — upload/camera establishes identity-source candidate; USE THIS PIC accepts it and advances to Vital Statistics.
+11. **CREATE ME — Vital Statistics** — cm/ft-in and kg/lb synchronized; bust/waist/hips captured; THIS LOOKS RIGHT validates and normalizes.
+12. **Identity Generating** — transient ALBUS calculation state; deterministic resolver produces one of 63 canon seeds.
+13. **Canon Confirmation** — SPOT ON accepts resolved canon; NOT QUITE opens Double Confirm.
+14. **Double Confirm** — refusal/correction route remains bounded; THE BODY THO enters Body Self-Selection while preserving identity lock.
+15. **Body Self-Selection** — exactly seven visual geometry choices.
+16. **Workshop** — canonical domains remain CLOTHES/BAGS/SHOES/ACCESSORIES; Compact available.
+17. **Pose Selection** — exactly 10 poses; Compact available.
+18. **Studio Selection** — exactly 6 Studios: five standard + My Studio; Compact available.
+19. **Clothes** — upload/camera reference; SLAP IT; SWAP; SKIP; REFERENCE; Compact.
+20. **Bags** — same domain contract, Bags only.
+21. **Shoes** — same domain contract, Shoes only.
+22. **Accessories** — same domain contract, Accessories only.
+23. **ALBUS Generating** — transient generation state; duplicate submission blocked; failure preserves protected root.
+24. **The Reveal** — heart/download/refresh, REFERENCE, Compact; mobile portrait gated.
+25. **Trend Alert** — ROLL AGAIN / THAT'S INTERESTING; Compact available.
+26. **Favorites** — max three Favorites, view/download, Compact; mobile portrait gated.
+27. **Compact Underside** — contextual Compact return; NO-NO semantics remain deliberately quarantined.
 
 ## Transformation railway
 `IMAGE N + PROMPT N + REFERENCE N → CANDIDATE IMAGE N+1`
 
-- Candidate is never the root until accepted.
-- Accept → candidate becomes current root.
-- Reject/fail → current root remains unchanged.
-- SWAP → active reference only.
-- SKIP → no fabricated image; progression preserves current root.
-- START AGAIN → clears currentRootMediaId, currentReferenceMediaId and pendingReveal before navigation changes; profile identity/body configuration remains unless Nuclear Reset is explicitly invoked.
-- Nuclear Reset is outside ordinary START AGAIN and preserves three Favorites + Birthday Gift Opened Flag per architecture.
+- Candidate is never Root until accepted.
+- Reject/fail preserves current Root.
+- SWAP changes Reference only.
+- SKIP fabricates no image and preserves Root.
+- START AGAIN clears active build state while preserving profile identity/body configuration.
+- Nuclear Reset remains separate and preserves three Favorites + Birthday Gift Opened Flag per architecture.
 
 ## Orientation contract
-- Desktop/laptop: orientation gate bypassed.
-- Mobile web Reveal and Favorites: portrait overlays `Shift to landscape mode`; underlying surface becomes usable in landscape.
-- Gate is transient display behavior, not a separate product page.
+- Desktop/laptop bypasses orientation gate.
+- Mobile Reveal/Favorites portrait overlays `Shift to landscape mode`; landscape releases.
+- Gate is transient behavior, not a product page.
 
 ## Working-area contract
-- **YELLOW:** safe/static composition.
-- **RED:** vertical extension/scroll allowed where designed.
-- **BLUE:** horizontal Studio working area/pan where designed.
-- **GREEN:** maximum product working boundary; Founder inspection tooling stays outside it.
-- Exact visual polish belongs to V3; V2 implements usable behavior.
+- YELLOW safe/static.
+- RED vertical extension/scroll.
+- BLUE horizontal Studio working area/pan.
+- GREEN maximum product working boundary.
 
 ## Compact contract
-Compact is contextual navigation, not an extra linear page requirement. Open/close preserves invoking context. Main destinations remain Mirror on the Wall, Explore, Trends and Favorites. Exact physical animation/polish is V2 2E; final art is V3.
+Compact now has two distinct visible home pages: **Compact Close** and **Compact Open**. Contextual Compact access from other product pages may still use the established Compact return mechanism and Compact Underside. Open/close must preserve invoking context. Exact physical animation/polish remains 2E/V3.
 
 ## WERK! contract
-WERK! is a transient conditioned prompt/display, never an icon, toggle or permanent placeholder. It appears only after the successful completion/exit condition defined by the active experience, then disappears without requiring product navigation. Timing/animation implementation is 2E.
+WERK! remains a transient conditioned display, never an icon/toggle/permanent page.
 
 ## Failure/recovery contract
-- Required-input validation does not mutate accepted state.
-- Duplicate generation submission is blocked while pending.
-- Media/API failure preserves last successful root and active user reference where recovery is possible.
-- User receives recoverable feedback and may retry/swap/skip according to domain context.
-- No failure path silently resets profile identity/body state.
+Required-input validation does not mutate accepted state; media/API failure preserves last accepted Root and recoverable state; no failure silently resets profile identity/body state.
 
 ## Explicitly unresolved / deferred
-- Exact NO-NO destructive/non-destructive downstream semantics beyond safe refusal/return.
-- Exact Trend Alert recommendation engine/data source.
-- Exact authentication/recovery backend mechanics.
-- Exact production image-generation API execution and prompt payloads beyond established railway/identity/body preservation contracts.
-- Final visual assets, typography, animation polish and production styling → V3 unless 2E needs low-fi interaction feedback.
+- Exact NO-NO downstream semantics.
+- Final Trend engine/data source.
+- Production authentication/recovery mechanics.
+- Production image-generation API/payload execution.
+- Final artwork/typography/animation/polish.
 
-These items must not be invented during 2B–2F. Founder decision or later authorized contract is required where implementation cannot proceed safely without them.
-
-## 2A Exit Gate
-2A passes when:
-1. all 26 V1 surfaces remain accounted for;
-2. known V1 controls have V2 behavior contracts;
-3. state ownership/lifetime is defined;
-4. transformation lineage and root protection are explicit;
-5. mobile orientation behavior is explicit;
-6. unresolved semantics are quarantined rather than invented.
-
-**Next construction coordinate after POLARIS/Founder release:** 2B — Foundation / functional state-navigation engine.
+## 2A Exit Gate — amended
+2A topology authority now requires all **27 pages** above to be accounted for while retaining the previously proven state, lineage, orientation, and no-invention contracts.
