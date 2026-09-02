@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Install Puppeteer for V1 regression
+        run: npm install --no-save puppeteer
       - name: Run V1 1B regression
         run: node run_prove.js
       - name: Run V1 1C regression
@@ -25,8 +27,6 @@ jobs:
         run: node run_1d_prove.js
       - name: Run V1 1E regression
         run: node run_1e_prove.js
-      - name: Install Puppeteer for V1 1F
-        run: npm install --no-save puppeteer
       - name: Run V1 1F regression
         run: node run_1f_prove.js
       - name: Run V2 2B Foundation tests
